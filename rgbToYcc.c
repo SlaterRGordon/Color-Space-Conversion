@@ -15,8 +15,15 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
-    FILE *fOutput;
-    if ((fOutput = fopen("./outputs/output.bmp", "wb")) == NULL)
+    FILE *fOutputYcc;
+    if ((fOutputYcc = fopen("./outputs/outputYcc.bmp", "wb")) == NULL)
+    {
+        printf("Error opening output file\n");
+        exit(1);
+    }
+
+    FILE *fOutputRgb;
+    if ((fOutputRgb = fopen("./outputs/outputRgb.bmp", "wb")) == NULL)
     {
         printf("Error opening output file\n");
         exit(1);
@@ -24,7 +31,8 @@ int main(int argc, char* argv[]) {
 
     // read header from image and write to output file
     fileHeader *fh = readFileHeader(fInput);
-    writeFileHeader(fOutput, fh);
+    writeFileHeader(fOutputRgb, fh);
+    writeFileHeader(fOutputYcc, fh);
 
     int width = fh->infoHeader.width;
     int height = fh->infoHeader.height;
@@ -39,13 +47,16 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
             fread(pixel, sizeof(rgbPixel), 1, fInput); // read in pixel
-            yccPixel *convertedPixel = rgbToYcc(pixel);
-            fwrite(convertedPixel, sizeof(yccPixel), 1, fOutput); // write pixel to output
+            yccPixel *convertedYccPixel = rgbToYcc(pixel);
+            rgbPixel *convertedRgbPixel = yccToRgb(convertedYccPixel);
+            fwrite(convertedYccPixel, sizeof(yccPixel), 1, fOutputYcc); // write pixel to output
+            fwrite(convertedRgbPixel, sizeof(rgbPixel), 1, fOutputRgb); // write pixel to output
         }
     }
 
     fclose(fInput);
-    fclose(fOutput);
+    fclose(fOutputRgb);
+    fclose(fOutputYcc);
 
     return 0;
 }
