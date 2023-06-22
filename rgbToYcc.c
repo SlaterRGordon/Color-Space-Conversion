@@ -16,24 +16,24 @@ typedef struct yccPixel {
     uint8_t cr;
 } yccPixel;
 
-yccPixel rgbToYcc(rgbPixel inputPixel) {
-    yccPixel outputPixel;
+yccPixel *rgbToYcc(rgbPixel *inputPixel) {
+    yccPixel *outputPixel = malloc(sizeof(yccPixel));
 
-    outputPixel.y = 16 +
-        (0.257 * inputPixel.r) + 
-        (0.504 * inputPixel.g) + 
-        (0.098 * inputPixel.b);
+    outputPixel->y = 16 +
+        (0.257 * inputPixel->r) + 
+        (0.504 * inputPixel->g) + 
+        (0.098 * inputPixel->b);
         
     
-    outputPixel.cb = 128 +
-        (-0.148 * inputPixel.r) + 
-        (-0.291 * inputPixel.g) + 
-        (0.439 * inputPixel.b);
+    outputPixel->cb = 128 +
+        (-0.148 * inputPixel->r) + 
+        (-0.291 * inputPixel->g) + 
+        (0.439 * inputPixel->b);
 
-    outputPixel.cr = 128 +
-        (0.439 * inputPixel.r) + 
-        (-0.368 * inputPixel.g) + 
-        (-0.071 * inputPixel.b);
+    outputPixel->cr = 128 +
+        (0.439 * inputPixel->r) + 
+        (-0.368 * inputPixel->g) + 
+        (-0.071 * inputPixel->b);
 
     return outputPixel;
 }
@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {
     }
 
     FILE *fOutput;
-    if ((fOutput = fopen("/outputs/output.bmp", "wb")) == NULL)
+    if ((fOutput = fopen("./outputs/output.bmp", "wb")) == NULL)
     {
         printf("Error opening output file\n");
         exit(1);
@@ -72,7 +72,8 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
             fread(pixel, sizeof(rgbPixel), 1, fInput); // read in pixel
-            fwrite(pixel, sizeof(rgbPixel), 1, fOutput); // write pixel to output
+            yccPixel *convertedPixel = rgbToYcc(pixel);
+            fwrite(convertedPixel, sizeof(yccPixel), 1, fOutput); // write pixel to output
         }
     }
 
