@@ -5,15 +5,15 @@
 #include "bmp.h" // include bmp file utils
 
 typedef struct rgbPixel {
-    unsigned char r;
-    unsigned char g;
-    unsigned char b;
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
 } rgbPixel;
 
 typedef struct yccPixel {
-    unsigned char y;
-    unsigned char cb;
-    unsigned char cr;
+    uint8_t y;
+    uint8_t cb;
+    uint8_t cr;
 } yccPixel;
 
 yccPixel rgbToYcc(rgbPixel inputPixel) {
@@ -42,14 +42,14 @@ int main(int argc, char* argv[]) {
 
     // open file in binary read mode
     FILE *fInput;
-    if ((fInput = fopen("./test1.bmp", "rb")) == NULL)
+    if ((fInput = fopen("./images/shapes.bmp", "rb")) == NULL)
     {
         printf("Error opening input file\n");
         exit(1);
     }
 
     FILE *fOutput;
-    if ((fOutput = fopen("output1.bmp", "wb")) == NULL)
+    if ((fOutput = fopen("/outputs/output.bmp", "wb")) == NULL)
     {
         printf("Error opening output file\n");
         exit(1);
@@ -63,26 +63,21 @@ int main(int argc, char* argv[]) {
     int height = fh->infoHeader.height;
 
     // move pointer passed file header
-    printf("\nOffsetting input pointer by: %d\n", fh->header.dataOffset);
     fseek(fInput, fh->header.dataOffset, SEEK_SET);
 
     // initialize pixel to read into
     rgbPixel *pixel = malloc(sizeof(rgbPixel));
 
-    printf("\nWidth: %d, Height: %d\n", width, height);
     // iterate through pixels
-    for (int i = 0; i < width; i++) {
-        for (int j = 0; j < height; j++) {
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
             fread(pixel, sizeof(rgbPixel), 1, fInput); // read in pixel
-            fseek(fInput, sizeof(rgbPixel), SEEK_CUR); // go next pixel
             fwrite(pixel, sizeof(rgbPixel), 1, fOutput); // write pixel to output
-            fseek(fOutput, sizeof(rgbPixel), SEEK_CUR);
         }
     }
 
     fclose(fInput);
     fclose(fOutput);
-
 
     return 0;
 }
