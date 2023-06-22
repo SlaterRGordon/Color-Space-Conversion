@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
 
     // checks if rgb2Ycc or ycc2Rgb
     bool rgb = true;
-    if (argv[3] == "-y2r")
+    if (strcmp(argv[3], "-y2r") == 0)
     {
         rgb = false;
     }
