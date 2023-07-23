@@ -5,8 +5,12 @@
 #include <stdbool.h>
 #include "bmp.h" // include bmp file utils
 #include "colors.h" // include color conversion utils
+#include <time.h>
 
 int main(int argc, char* argv[]) {
+
+    clock_t startTime, endTime;
+    double cpuTimeUsed;
 
     if (argc > 4) {
         printf("Error wrong arguments\n");
@@ -49,9 +53,13 @@ int main(int argc, char* argv[]) {
     rgbPixel *rPixel = malloc(sizeof(rgbPixel));
     yccPixel *yPixel = malloc(sizeof(yccPixel));
 
+    int i = 0;
+    int j = 0;
     // iterate through pixels
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
+    // for (int i = 0; i < height; i++) {
+    //     for (int j = 0; j < width; j++) {
+    for ( i = 0; i < height; i++) {
+        for ( j = 0; j < width; j++) {
             if (rgb) {
                 fread(rPixel, sizeof(rgbPixel), 1, fInput); // read in pixel
                 yccPixel *convertedPixel = rgbToYcc(rPixel);
@@ -66,6 +74,10 @@ int main(int argc, char* argv[]) {
 
     fclose(fInput);
     fclose(fOutput);
+
+    // Calculate the CPU time used in seconds
+    cpuTimeUsed = ((double) (endTime - startTime)) / CLOCKS_PER_SEC;
+    printf("Program ran for: %f seconds\n", cpuTimeUsed);
 
     return 0;
 }
