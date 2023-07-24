@@ -1,4 +1,3 @@
-#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -8,7 +7,6 @@
 #include "colors.h" // include color conversion utils
 
 int main(int argc, char* argv[]) {
-
     if (argc > 4) {
         printf("Error wrong arguments\n");
         exit(1);
@@ -29,13 +27,6 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
-    // checks if rgb2Ycc or ycc2Rgb
-    bool rgb = true;
-    if (strcmp(argv[3], "-y2r") == 0)
-    {
-        rgb = false;
-    }
-
     // read header from image and write to output file
     fileHeader *fh = readFileHeader(fInput);
     writeFileHeader(fOutput, fh);
@@ -53,15 +44,9 @@ int main(int argc, char* argv[]) {
     // iterate through pixels
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
-            if (rgb) {
-                fread(rPixel, sizeof(rgbPixel), 1, fInput); // read in pixel
-                yccPixel *convertedPixel = rgbToYcc(rPixel);
-                fwrite(convertedPixel, sizeof(yccPixel), 1, fOutput); // write pixel to output
-            } else {
-                fread(yPixel, sizeof(yccPixel), 1, fInput); // read in pixel
-                rgbPixel *convertedPixel = yccToRgb(yPixel);
-                fwrite(convertedPixel, sizeof(rgbPixel), 1, fOutput); // write pixel to output
-            }
+            fread(yPixel, sizeof(yccPixel), 1, fInput); // read in pixel
+            rgbPixel *convertedPixel = yccToRgb(yPixel);
+            fwrite(convertedPixel, sizeof(rgbPixel), 1, fOutput); // write pixel to output
         }
     }
 
