@@ -6,41 +6,88 @@
 #include "bmp.h" // include bmp file utils
 #include "colors_optimized.h" // include color conversion utils
 
-void cache_oblivious(rgbPixel *inputData, yccPixel *outputData, int width, int height, 
+void cache_oblivious(pixel *data, int width, int height, 
     int new_width, int new_height, int start_x, int start_y){
     
-    if (new_width <= 2 && new_height <= 2) {
-        rgbPixel *pixelArray[4];
-        pixelArray[0] = &inputData[(start_y * width) + start_x];
-        pixelArray[1] = &inputData[(start_y * width) + (start_x + 1)];
-        pixelArray[2] = &inputData[((start_y + 1) * width) + start_x];
-        pixelArray[3] = &inputData[((start_y + 1) * width) + (start_x + 1)];
+    if (new_width == 2 && new_height == 2) {
+        pixel *pixelArray[4];
+        pixelArray[0] = &data[(start_y * width) + start_x];
+        pixelArray[1] = &data[(start_y * width) + (start_x + 1)];
+        pixelArray[2] = &data[((start_y + 1) * width) + start_x];
+        pixelArray[3] = &data[((start_y + 1) * width) + (start_x + 1)];
 
-        yccPixel *convertedPixels = (yccPixel *)malloc(sizeof(yccPixel) * 4);
+        pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 4);
         rgbToYcc(pixelArray, convertedPixels);
 
-        outputData[(start_y * width) + start_x] = convertedPixels[0];
-        outputData[(start_y * width) + (start_x + 1)] = convertedPixels[1];
-        outputData[((start_y + 1) * width) + start_x] = convertedPixels[2];
-        outputData[((start_y + 1) * width) + (start_x + 1)] = convertedPixels[3];
+        data[(start_y * width) + start_x] = convertedPixels[0];
+        data[(start_y * width) + (start_x + 1)] = convertedPixels[1];
+        data[((start_y + 1) * width) + start_x] = convertedPixels[2];
+        data[((start_y + 1) * width) + (start_x + 1)] = convertedPixels[3];
+
+        free(convertedPixels);
+
+        return;
+    }  else if (new_width == 2 && new_height == 1) {
+        pixel *pixelArray[4];
+        pixelArray[0] = &data[(start_y * width) + start_x];
+        pixelArray[1] = &data[(start_y * width) + (start_x + 1)];
+        pixelArray[2] = &data[(start_y * width) + start_x];
+        pixelArray[3] = &data[(start_y * width) + (start_x + 1)];
+
+        pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 4);
+        rgbToYcc(pixelArray, convertedPixels);
+
+        data[(start_y * width) + start_x] = convertedPixels[0];
+        data[(start_y * width) + (start_x + 1)] = convertedPixels[1];
+
+        free(convertedPixels);
+
+        return;
+    }  else if (new_width == 1 && new_height == 2) {
+        pixel *pixelArray[4];
+        pixelArray[0] = &data[(start_y * width) + start_x];
+        pixelArray[1] = &data[(start_y * width) + start_x];
+        pixelArray[2] = &data[((start_y + 1) * width) + start_x];
+        pixelArray[3] = &data[(start_y  * width) + start_x];
+
+        pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 4);
+        rgbToYcc(pixelArray, convertedPixels);
+
+        data[(start_y * width) + start_x] = convertedPixels[0];
+        data[((start_y + 1) * width) + start_x] = convertedPixels[2];
+
+        free(convertedPixels);
+
+        return;
+    } else if (new_width == 1 && new_height == 1) {
+        pixel *pixelArray[4];
+        pixelArray[0] = &data[(start_y * width) + start_x];
+        pixelArray[1] = &data[(start_y * width) + start_x];
+        pixelArray[2] = &data[(start_y * width) + start_x];
+        pixelArray[3] = &data[(start_y * width) + start_x];
+
+        pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 4);
+        rgbToYcc(pixelArray, convertedPixels);
+
+        data[(start_y * width) + start_x] = convertedPixels[0];
 
         free(convertedPixels);
 
         return;
     }
 
-    int half_width = (new_width + 1) / 2;
-    int half_height = (new_height + 1) / 2;
     if (new_width < new_height) { // splitting horizontally
-        cache_oblivious(inputData, outputData, width, height, new_width, half_height, 
+        int half_height = new_height / 2;
+        cache_oblivious(data, width, height, new_width, half_height, 
             start_x, start_y);
-        cache_oblivious(inputData, outputData, width, height, new_width, half_height, 
-            start_x, start_y + (new_height - half_height));
+        cache_oblivious(data, width, height, new_width, (new_height - half_height), 
+            start_x, start_y + half_height);
     } else { // splitting vertically
-        cache_oblivious(inputData, outputData, width, height, half_width, new_height, 
+        int half_width = new_width / 2;
+        cache_oblivious(data, width, height, half_width, new_height, 
             start_x, start_y);
-        cache_oblivious(inputData, outputData, width, height, half_width, new_height, 
-            start_x + (new_width - half_width), start_y);
+        cache_oblivious(data, width, height, (new_width - half_width), new_height, 
+            start_x + half_width, start_y);
     }
 }
 
@@ -77,19 +124,17 @@ int main(int argc, char* argv[]) {
     fseek(fInput, fh->header.dataOffset, SEEK_SET);
 
     // allocate mem and read image into data
-    rgbPixel *data = (rgbPixel *)malloc(width * height * sizeof(rgbPixel));
-    yccPixel *outputData = (yccPixel *)malloc(width * height * sizeof(yccPixel));
+    pixel *data = (pixel *)malloc(width * height * sizeof(pixel));
     if (fread(data, 3 * width, height, fInput) != (size_t)height) {
         fprintf(stderr, "Failed to read image \n");
         exit(1);
     }
 
-    cache_oblivious(data, outputData, width, height, width, height, 0, 0);
+    cache_oblivious(data, width, height, width, height, 0, 0);
 
-    fwrite(outputData, 3 * width, height, fOutput);
+    fwrite(data, 3 * width, height, fOutput);
 
     free(data);
-    free(outputData);
 
     fclose(fInput);
     fclose(fOutput);

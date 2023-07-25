@@ -6,6 +6,44 @@
 #include "bmp.h" // include bmp file utils
 #include "colors_optimized.h" // include color conversion utils
 
+void cache_oblivious(yccPixel *inputData, rgbPixel *outputData, int width, int height, 
+    int new_width, int new_height, int start_x, int start_y){
+    
+    if (new_width <= 2 && new_height <= 2) {
+        yccPixel *pixelArray[4];
+        pixelArray[0] = &inputData[(start_y * width) + start_x];
+        pixelArray[1] = &inputData[(start_y * width) + (start_x + 1)];
+        pixelArray[2] = &inputData[((start_y + 1) * width) + start_x];
+        pixelArray[3] = &inputData[((start_y + 1) * width) + (start_x + 1)];
+
+        rgbPixel *convertedPixels = (rgbPixel *)malloc(sizeof(rgbPixel) * 4);
+        yccToRgb(pixelArray, convertedPixels);
+
+        outputData[(start_y * width) + start_x] = convertedPixels[0];
+        outputData[(start_y * width) + (start_x + 1)] = convertedPixels[1];
+        outputData[((start_y + 1) * width) + start_x] = convertedPixels[2];
+        outputData[((start_y + 1) * width) + (start_x + 1)] = convertedPixels[3];
+
+        free(convertedPixels);
+
+        return;
+    }
+
+    int half_width = (new_width + 1) / 2;
+    int half_height = (new_height + 1) / 2;
+    if (new_width < new_height) { // splitting horizontally
+        cache_oblivious(inputData, outputData, width, height, new_width, half_height, 
+            start_x, start_y);
+        cache_oblivious(inputData, outputData, width, height, new_width, half_height, 
+            start_x, start_y + (new_height - half_height));
+    } else { // splitting vertically
+        cache_oblivious(inputData, outputData, width, height, half_width, new_height, 
+            start_x, start_y);
+        cache_oblivious(inputData, outputData, width, height, half_width, new_height, 
+            start_x + (new_width - half_width), start_y);
+    }
+}
+
 int main(int argc, char* argv[]) {
     if (argc > 4) {
         printf("Error wrong arguments\n");
@@ -30,6 +68,7 @@ int main(int argc, char* argv[]) {
     // read header from image and write to output file
     fileHeader *fh = readFileHeader(fInput);
     writeFileHeader(fOutput, fh);
+    free(fh);
 
     int width = fh->infoHeader.width;
     int height = fh->infoHeader.height;
@@ -37,17 +76,20 @@ int main(int argc, char* argv[]) {
     // move pointer passed file header
     fseek(fInput, fh->header.dataOffset, SEEK_SET);
 
-    // initialize pixel to read into
-    yccPixel *yPixel = malloc(sizeof(yccPixel));
-
-    // iterate through pixels
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
-            fread(yPixel, sizeof(yccPixel), 1, fInput); // read in pixel
-            rgbPixel *convertedPixel = yccToRgb(yPixel);
-            fwrite(convertedPixel, sizeof(rgbPixel), 1, fOutput); // write pixel to output
-        }
+    // allocate mem and read image into data
+    yccPixel *data = (yccPixel *)malloc(width * height * sizeof(yccPixel));
+    rgbPixel *outputData = (rgbPixel *)malloc(width * height * sizeof(rgbPixel));
+    if (fread(data, 3 * width, height, fInput) != (size_t)height) {
+        fprintf(stderr, "Failed to read image \n");
+        exit(1);
     }
+
+    cache_oblivious(data, outputData, width, height, width, height, 0, 0);
+
+    fwrite(outputData, 3 * width, height, fOutput);
+
+    free(data);
+    free(outputData);
 
     fclose(fInput);
     fclose(fOutput);
