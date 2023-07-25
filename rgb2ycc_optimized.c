@@ -17,7 +17,7 @@ void cache_oblivious(pixel *data, int width, int height,
         pixelArray[3] = &data[((start_y + 1) * width) + (start_x + 1)];
 
         pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 4);
-        rgbToYcc(pixelArray, convertedPixels);
+        rgbToYcc(pixelArray, convertedPixels, 4);
 
         data[(start_y * width) + start_x] = convertedPixels[0];
         data[(start_y * width) + (start_x + 1)] = convertedPixels[1];
@@ -31,11 +31,9 @@ void cache_oblivious(pixel *data, int width, int height,
         pixel *pixelArray[4];
         pixelArray[0] = &data[(start_y * width) + start_x];
         pixelArray[1] = &data[(start_y * width) + (start_x + 1)];
-        pixelArray[2] = &data[(start_y * width) + start_x];
-        pixelArray[3] = &data[(start_y * width) + (start_x + 1)];
 
-        pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 4);
-        rgbToYcc(pixelArray, convertedPixels);
+        pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 2);
+        rgbToYcc(pixelArray, convertedPixels, 2);
 
         data[(start_y * width) + start_x] = convertedPixels[0];
         data[(start_y * width) + (start_x + 1)] = convertedPixels[1];
@@ -46,15 +44,13 @@ void cache_oblivious(pixel *data, int width, int height,
     }  else if (new_width == 1 && new_height == 2) {
         pixel *pixelArray[4];
         pixelArray[0] = &data[(start_y * width) + start_x];
-        pixelArray[1] = &data[(start_y * width) + start_x];
-        pixelArray[2] = &data[((start_y + 1) * width) + start_x];
-        pixelArray[3] = &data[(start_y  * width) + start_x];
+        pixelArray[1] = &data[((start_y + 1) * width) + start_x];
 
-        pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 4);
-        rgbToYcc(pixelArray, convertedPixels);
+        pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 2);
+        rgbToYcc(pixelArray, convertedPixels, 2);
 
         data[(start_y * width) + start_x] = convertedPixels[0];
-        data[((start_y + 1) * width) + start_x] = convertedPixels[2];
+        data[((start_y + 1) * width) + start_x] = convertedPixels[1];
 
         free(convertedPixels);
 
@@ -62,12 +58,9 @@ void cache_oblivious(pixel *data, int width, int height,
     } else if (new_width == 1 && new_height == 1) {
         pixel *pixelArray[4];
         pixelArray[0] = &data[(start_y * width) + start_x];
-        pixelArray[1] = &data[(start_y * width) + start_x];
-        pixelArray[2] = &data[(start_y * width) + start_x];
-        pixelArray[3] = &data[(start_y * width) + start_x];
 
-        pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 4);
-        rgbToYcc(pixelArray, convertedPixels);
+        pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 1);
+        rgbToYcc(pixelArray, convertedPixels, 1);
 
         data[(start_y * width) + start_x] = convertedPixels[0];
 
