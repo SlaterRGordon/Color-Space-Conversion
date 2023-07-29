@@ -8,63 +8,55 @@
 
 void cache_oblivious(pixel *data, int width, int height, 
     int new_width, int new_height, int start_x, int start_y){
-    
-    if (new_width == 2 && new_height == 2) {
-        pixel *pixelArray[4];
-        pixelArray[0] = &data[(start_y * width) + start_x];
-        pixelArray[1] = &data[(start_y * width) + (start_x + 1)];
-        pixelArray[2] = &data[((start_y + 1) * width) + start_x];
-        pixelArray[3] = &data[((start_y + 1) * width) + (start_x + 1)];
 
-        pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 4);
-        rgbToYcc(pixelArray, convertedPixels, 4);
+    // stop before function call overhead becomes too much
+    if (new_height <= 64 && new_width <= 64) {
+        int i, j;
+        for (i = 0; i + 1 < new_height; i+=2) {
+            for (j = 0; j + 1 < new_width; j+=2) {
+                pixel *pixelArray[4];
+                pixelArray[0] = &data[((start_y + i) * width) + (start_x + j)];
+                pixelArray[1] = &data[((start_y + i) * width) + ((start_x + j) + 1)];
+                pixelArray[2] = &data[(((start_y + i) + 1) * width) + (start_x + j)];
+                pixelArray[3] = &data[(((start_y + i) + 1) * width) + ((start_x + j) + 1)];
 
-        data[(start_y * width) + start_x] = convertedPixels[0];
-        data[(start_y * width) + (start_x + 1)] = convertedPixels[1];
-        data[((start_y + 1) * width) + start_x] = convertedPixels[2];
-        data[((start_y + 1) * width) + (start_x + 1)] = convertedPixels[3];
+                pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 4);
+                rgbToYcc(pixelArray, convertedPixels, 4);
 
-        free(convertedPixels);
+                data[((start_y + i) * width) + (start_x + j)] = convertedPixels[0];
+                data[((start_y + i) * width) + ((start_x + j) + 1)] = convertedPixels[1];
+                data[(((start_y + i) + 1) * width) + (start_x + j)] = convertedPixels[2];
+                data[(((start_y + i) + 1) * width) + ((start_x + j) + 1)] = convertedPixels[3];
 
-        return;
-    }  else if (new_width == 2 && new_height == 1) {
-        pixel *pixelArray[4];
-        pixelArray[0] = &data[(start_y * width) + start_x];
-        pixelArray[1] = &data[(start_y * width) + (start_x + 1)];
+                free(convertedPixels); 
+            }
+            if (j + 1 == new_width) {
+                pixel *pixelArray[2];
+                pixelArray[0] = &data[((start_y + i) * width) + (start_x + j)];
+                pixelArray[1] = &data[(((start_y + i) + 1) * width) + (start_x + j)];
 
-        pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 2);
-        rgbToYcc(pixelArray, convertedPixels, 2);
+                pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 2);
+                rgbToYcc(pixelArray, convertedPixels, 2);
 
-        data[(start_y * width) + start_x] = convertedPixels[0];
-        data[(start_y * width) + (start_x + 1)] = convertedPixels[1];
+                data[((start_y + i) * width) + (start_x + j)] = convertedPixels[0];
+                data[(((start_y + i) + 1) * width) + (start_x + j)] = convertedPixels[1];
 
-        free(convertedPixels);
+                free(convertedPixels); 
+            }
+        }
+        if (i + 1 == new_height) {
+            for (j = 0; j < new_width; j++) {
+                pixel *pixelArray[1];
+                pixelArray[0] = &data[((start_y + i) * width) + (start_x + j)];
 
-        return;
-    }  else if (new_width == 1 && new_height == 2) {
-        pixel *pixelArray[4];
-        pixelArray[0] = &data[(start_y * width) + start_x];
-        pixelArray[1] = &data[((start_y + 1) * width) + start_x];
+                pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 1);
+                rgbToYcc(pixelArray, convertedPixels, 1);
 
-        pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 2);
-        rgbToYcc(pixelArray, convertedPixels, 2);
+                data[((start_y + i) * width) + (start_x + j)] = convertedPixels[0];
 
-        data[(start_y * width) + start_x] = convertedPixels[0];
-        data[((start_y + 1) * width) + start_x] = convertedPixels[1];
-
-        free(convertedPixels);
-
-        return;
-    } else if (new_width == 1 && new_height == 1) {
-        pixel *pixelArray[4];
-        pixelArray[0] = &data[(start_y * width) + start_x];
-
-        pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 1);
-        rgbToYcc(pixelArray, convertedPixels, 1);
-
-        data[(start_y * width) + start_x] = convertedPixels[0];
-
-        free(convertedPixels);
+                free(convertedPixels); 
+            }
+        }
 
         return;
     }
@@ -113,23 +105,69 @@ int main(int argc, char* argv[]) {
     int width = fh->infoHeader.width;
     int height = fh->infoHeader.height;
 
-    // move pointer passed file header
-    fseek(fInput, fh->header.dataOffset, SEEK_SET);
+    printf("Data offset: %d\n", fh->header.dataOffset);
 
+    fseek(fInput, fh->header.dataOffset, SEEK_SET);
     // allocate mem and read image into data
     pixel *data = (pixel *)malloc(width * height * sizeof(pixel));
     if (fread(data, 3 * width, height, fInput) != (size_t)height) {
         fprintf(stderr, "Failed to read image \n");
         exit(1);
     }
+    fclose(fInput);
 
-    cache_oblivious(data, width, height, width, height, 0, 0);
+    printf("width: %d, height: %d\n", width, height);
+
+    // cache_oblivious(data, width, height, width, height, 0, 0);
+
+    int i, j;
+    for (i = 0; i + 1 < height; i+=2) {
+        for (j = 0; j + 1 < width; j+=2) {
+            pixel *pixelArray[4];
+            pixelArray[0] = &data[i * width + j];
+            pixelArray[1] = &data[i * width + j + 1];
+            pixelArray[2] = &data[(i + 1) * width + j];
+            pixelArray[3] = &data[(i + 1) * width + j + 1];
+
+            pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 4);
+            rgbToYcc(pixelArray, convertedPixels, 4);
+
+            data[i * width + j] = convertedPixels[0];
+            data[i * width + j + 1] = convertedPixels[1];
+            data[(i + 1) * width + j] = convertedPixels[2];
+            data[(i + 1) * width + j + 1]  = convertedPixels[3];
+
+            free(convertedPixels); 
+        }
+        if (j + 1 == width) {
+            pixel *pixelArray[2];
+            pixelArray[0] = &data[i * width + j];
+            pixelArray[1] = &data[i + 1 * width + j];
+
+            pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 2);
+            rgbToYcc(pixelArray, convertedPixels, 2);
+
+            data[i * width + j] = convertedPixels[0];
+            data[(i + 1) * width + j] = convertedPixels[1];
+
+            free(convertedPixels); 
+        }
+    }
+    if (i + 1 == height) {
+        for (j = 0; j < width; j++) {
+            pixel *pixelArray[1];
+            pixelArray[0] = &data[i * width + j];
+
+            pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 1);
+            rgbToYcc(pixelArray, convertedPixels, 1);
+
+            data[i * width + j] = convertedPixels[0];
+
+            free(convertedPixels); 
+        }
+    }
 
     fwrite(data, 3 * width, height, fOutput);
-
-    free(data);
-
-    fclose(fInput);
     fclose(fOutput);
 
     return 0;
