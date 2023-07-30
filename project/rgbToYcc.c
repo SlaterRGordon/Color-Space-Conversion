@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include "bmp.h" // include bmp file utils
-#include "color.c" // include color conversion utils
+#include "color.h" // include color conversion utils
 #include "filter.c"
 
 int main(int argc, char* argv[]) {
@@ -53,27 +53,47 @@ int main(int argc, char* argv[]) {
     free(data);
 
     pixel *sampledData = (pixel *)malloc((width/2) * (height/2) * sizeof(pixel));
-    for (int i = 0; i < height; i+=2) {
-        for (int j = 0; j < width; j+=2) {
-            pixel *inputPixels[1];
-            pixel *averagePixel = (pixel *)malloc(sizeof(pixel));
-            averagePixel->x = (filteredData[i * width + j].x);
-            averagePixel->y = (filteredData[i * width + j].y + 
-                filteredData[i * width + j + 1].y + 
-                filteredData[(i + 1) * width + j].y + 
-                filteredData[(i + 1) * width + j + 1].y) / 4;
-            averagePixel->z = (filteredData[i * width + j].z + 
-                filteredData[i * width + j + 1].z + 
-                filteredData[(i + 1) * width + j].z + 
-                filteredData[(i + 1) * width + j + 1].z) / 4;
+    register short int i, j;
+    for (i = 0; i < height; i+=2) {
+        for (j = 0; j < width; j+=2) {
+            sampledData[(i/2) * width/2 + (j/2)].x = (uint8_t)((4096 + 
+                (66 * (filteredData[i * width + j].x) + 
+                (129 * filteredData[i * width + j].y) +  
+                (25 * filteredData[i * width + j].z)) + 128) >> 8);
 
-            inputPixels[0] = averagePixel;
-            
-            pixel *convertedPixels = (pixel *)malloc(sizeof(pixel) * 1);
-            rgbToYcc(inputPixels, convertedPixels);
+            sampledData[(i/2) * width/2 + (j/2)].y = ((uint8_t)(((32768 - 
+                (38 * filteredData[i * width + j].x) - 
+                (74 * filteredData[i * width + j].y) + 
+                (112 * filteredData[i * width + j].z)) + 128) >> 8) + 
+                (uint8_t)(((32768 - 
+                (38 * filteredData[i * width + j + 1].x) - 
+                (74 * filteredData[i * width + j + 1].y) + 
+                (112 * filteredData[i * width + j + 1].z)) + 128) >> 8) + 
+                (uint8_t)(((32768 - 
+                (38 * filteredData[(i + 1) * width + j].x) - 
+                (74 * filteredData[(i + 1) * width + j].y) + 
+                (112 * filteredData[(i + 1) * width + j].z)) + 128) >> 8) + 
+                (uint8_t)(((32768 - 
+                (38 * filteredData[(i + 1) * width + j + 1].x) - 
+                (74 * filteredData[(i + 1) * width + j + 1].y) + 
+                (112 * filteredData[(i + 1) * width + j + 1].z)) + 128) >> 8)) >> 2;
 
-            sampledData[(i/2) * width/2 + (j/2)] = convertedPixels[0];
-            free(convertedPixels); 
+            sampledData[(i/2) * width/2 + (j/2)].z = ((uint8_t)(((32768 + 
+                (112 * filteredData[i * width + j].x) - 
+                (94 * filteredData[i * width + j].y) - 
+                (18 * filteredData[i * width + j].z)) + 128) >> 8) + 
+                (uint8_t)(((32768 + 
+                (112 * filteredData[i * width + j + 1].x) - 
+                (94 * filteredData[i * width + j + 1].y) - 
+                (18 * filteredData[i * width + j + 1].z)) + 128) >> 8) + 
+                (uint8_t)(((32768 + 
+                (112 * filteredData[(i + 1) * width + j].x) - 
+                (94 * filteredData[(i + 1) * width + j].y) - 
+                (18 * filteredData[(i + 1) * width + j].z)) + 128) >> 8) + 
+                (uint8_t)(((32768 + 
+                (112 * filteredData[(i + 1) * width + j + 1].x) - 
+                (94 * filteredData[(i + 1) * width + j + 1].y) - 
+                (18 * filteredData[(i + 1) * width + j + 1].z)) + 128) >> 8)) >> 2;
         }
     }
     free(filteredData);

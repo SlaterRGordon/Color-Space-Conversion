@@ -6,21 +6,25 @@
 pixel *rgbToYcc(pixel *inputPixel) {
     pixel *outputPixel = malloc(sizeof(pixel));
     
-    outputPixel->x = 16 +
-        (0.257 * inputPixel->x) + 
-        (0.504 * inputPixel->y) + 
-        (0.098 * inputPixel->z);
+    outputPixel->x = (uint8_t)((4096 + (66 * inputPixel->x) + (129 * inputPixel->y) +  (25 * inputPixel->z) + 128) >> 8);
+    outputPixel->y = (uint8_t)((32768 - (38 * inputPixel->x) - (74 * inputPixel->y) + (112 * inputPixel->z) + 128) >> 8);
+    outputPixel->z = (uint8_t)((32768 + (112 * inputPixel->x) - (94 * inputPixel->y) - (18 * inputPixel->z) + 128) >> 8);
+
+    // outputPixel->x = 16 +
+    //     (0.257 * inputPixel->x) + 
+    //     (0.504 * inputPixel->y) + 
+    //     (0.098 * inputPixel->z);
         
     
-    outputPixel->y = 128 +
-        (-0.148 * inputPixel->x) + 
-        (-0.291 * inputPixel->y) + 
-        (0.439 * inputPixel->z);
+    // outputPixel->y = 128 +
+    //     (-0.148 * inputPixel->x) + 
+    //     (-0.291 * inputPixel->y) + 
+    //     (0.439 * inputPixel->z);
 
-    outputPixel->z = 128 +
-        (0.439 * inputPixel->x) + 
-        (-0.368 * inputPixel->y) + 
-        (-0.071 * inputPixel->z);
+    // outputPixel->z = 128 +
+    //     (0.439 * inputPixel->x) + 
+    //     (-0.368 * inputPixel->y) + 
+    //     (-0.071 * inputPixel->z);
 
     return outputPixel;
 }
