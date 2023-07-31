@@ -1,6 +1,6 @@
 #!/bin/sh
-gcc -O3 rgbToYcc.c -o rgbToYcc.o -lm
+gcc -O3 -mfpu=neon rgbToYcc.c -o rgbToYcc.exe -lm
 
 rm cachegrind.out.*
-valgrind --tool=cachegrind ./rgbToYcc.o ./images/ray.bmp ./outputs/ray.bmp 
+valgrind --tool=cachegrind --branch-sim=yes ./rgbToYcc.exe ./images/ray.bmp ./outputs/ray.bmp 
 cg_annotate --auto=yes cachegrind.out.*

@@ -1,6 +1,6 @@
 #!/bin/sh
-gcc -O3 rgbToYcc_unopt.c -o rgbToYcc_unopt.o -lm
+gcc rgbToYcc_unopt.c -o rgbToYcc_unopt.exe
 
 rm cachegrind.out.*
-valgrind --tool=cachegrind ./rgbToYcc_unopt.o ../images/ray.bmp ../outputs/ray2.bmp 
+valgrind --tool=cachegrind --branch-sim=yes ./rgbToYcc_unopt.exe ../images/ray.bmp ../outputs/ray2.bmp 
 cg_annotate --auto=yes cachegrind.out.*
