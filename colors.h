@@ -37,19 +37,17 @@ rgbPixel *yccToRgb(yccPixel *inputPixel) {
 
     outputPixel->r =
         (1.164 * (inputPixel->y - 16)) + 
-        (0 * (inputPixel->cb - 128)) + 
         (1.596 * (inputPixel->cr - 128));
         
     
     outputPixel->g =
         (1.164 * (inputPixel->y - 16)) + 
-        (-0.392 * (inputPixel->cb - 128)) + 
-        (-0.813 * (inputPixel->cr - 128));
+        (-0.813 * (inputPixel->cr - 128)) +
+        (-0.392 * (inputPixel->cb - 128)); 
 
     outputPixel->b =
         (1.164 * (inputPixel->y - 16)) + 
         (2.017 * (inputPixel->cb - 128)) + 
-        (0 * (inputPixel->cr - 128));
 
     return outputPixel;
 }

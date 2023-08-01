@@ -34,11 +34,10 @@ int main(int argc, char* argv[]) {
     int width = fh->infoHeader.width;
     int height = fh->infoHeader.height;
 
-    fh->infoHeader.width /= 2;
-    fh->infoHeader.height /= 2;
-    writeFileHeader(fOutput, fh);
-    free(fh);
+    // fh->infoHeader.width /= 2;
+    // fh->infoHeader.height /= 2;
 
+    writeFileHeader(fOutput, fh);
     fseek(fInput, fh->header.dataOffset, SEEK_SET);
 
     // allocate mem and read image into data
@@ -53,7 +52,7 @@ int main(int argc, char* argv[]) {
     gaussianFilter(data, filteredData, width, height);
     free(data);
 
-    pixel *sampledData = (pixel *)malloc((width/2) * (height/2) * sizeof(pixel));
+    compressedPixel *compressedData = (compressedPixel *)malloc((width/2) * (height/2) * sizeof(compressedPixel));
     uint16x8_t leftShiftVal = vdupq_n_u16(128);
 
     register short int i, j;
@@ -67,7 +66,7 @@ int main(int argc, char* argv[]) {
             uint8x8x3_t dataVecR2_8x3 = vld3_u8(&filteredData[index1 + width].x);
             uint8x8x3_t dataVecR2I1_8x3 = vld3_u8(&filteredData[index1 + width + 1].x);
             
-            uint8x8_t resultX = vshrn_n_u16(
+            uint8x8_t resultX1 = vshrn_n_u16(
                 vaddq_u16(
                     vmlal_u8(
                         vmlal_u8(
@@ -80,10 +79,20 @@ int main(int argc, char* argv[]) {
                 ), 
                 8
             );
-            // uint8_t xVal = (uint8_t)((4096 + 
-            //     (66 * (filteredData[index1].x) + 
-            //     (129 * filteredData[index1].y) +  
-            //     (25 * filteredData[index1].z)) + 128) >> 8);
+
+            uint8x8_t resultX2 = vshrn_n_u16(
+                vaddq_u16(
+                    vmlal_u8(
+                        vmlal_u8(
+                            vmull_u8(dataVecR2_8x3.val[2], vdup_n_u8(25)), 
+                            dataVecR2_8x3.val[1], vdup_n_u8(129)
+                        ), 
+                        dataVecR2_8x3.val[0], vdup_n_u8(66)
+                    ), 
+                    vdupq_n_u16(4096)
+                ), 
+                8
+            );
 
             uint8x8_t resultY = vshrn_n_u16(
                 vaddq_u16(
@@ -134,23 +143,6 @@ int main(int argc, char* argv[]) {
                 ),
                 2
             );
-            // uint8_t xVal = ((uint8_t)(((32768 - 
-            //     (38 * filteredData[index1].x) - 
-            //     (74 * filteredData[index1].y) + 
-            //     (112 * filteredData[index1].z)) + 128) >> 8) + 
-            //     (uint8_t)(((32768 - 
-            //     (38 * filteredData[index1 + 1].x) - 
-            //     (74 * filteredData[index1 + 1].y) + 
-            //     (112 * filteredData[index1 + 1].z)) + 128) >> 8) + 
-            //     (uint8_t)(((32768 - 
-            //     (38 * filteredData[index1 + width].x) - 
-            //     (74 * filteredData[index1 + width].y) + 
-            //     (112 * filteredData[index1 + width].z)) + 128) >> 8) + 
-            //     (uint8_t)(((32768 - 
-            //     (38 * filteredData[index1 + width + 1].x) - 
-            //     (74 * filteredData[index1 + width + 1].y) + 
-            //     (112 * filteredData[index1 + width + 1].z)) + 128) >> 8)) >> 2;
-
 
             uint8x8_t resultZ = vshrn_n_u16(
                 vaddq_u16(
@@ -199,29 +191,45 @@ int main(int argc, char* argv[]) {
                         8
                     )
                 ),2);
-
-            sampledData[sampleIndex].x = resultX[0];
-            sampledData[sampleIndex].y = resultY[0];
-            sampledData[sampleIndex].z = resultZ[0];
-
-            sampledData[sampleIndex+1].x = resultX[2];
-            sampledData[sampleIndex+1].y = resultY[2];
-            sampledData[sampleIndex+1].z = resultZ[2];
-
-            sampledData[sampleIndex+2].x = resultX[4];
-            sampledData[sampleIndex+2].y = resultY[4];
-            sampledData[sampleIndex+2].z = resultZ[4];
-
-            sampledData[sampleIndex+3].x = resultX[6];
-            sampledData[sampleIndex+3].y = resultY[6];
-            sampledData[sampleIndex+3].z = resultZ[6];
-
+            
+            compressedData[sampleIndex] = (compressedPixel) {
+                .x1 = resultX1[0],
+                .x2 = resultX1[1],
+                .x3 = resultX2[0],
+                .x4 = resultX2[1],
+                .y = resultY[0],
+                .z = resultZ[0]
+            };
+            compressedData[sampleIndex + 1] = (compressedPixel) {
+                .x1 = resultX1[2],
+                .x2 = resultX1[3],
+                .x3 = resultX2[2],
+                .x4 = resultX2[3],
+                .y = resultY[2],
+                .z = resultZ[2]
+            };
+            compressedData[sampleIndex + 2] = (compressedPixel) {
+                .x1 = resultX1[4],
+                .x2 = resultX1[5],
+                .x3 = resultX2[4],
+                .x4 = resultX2[5],
+                .y = resultY[4],
+                .z = resultZ[4]
+            };
+            compressedData[sampleIndex + 3] = (compressedPixel) {
+                .x1 = resultX1[6],
+                .x2 = resultX1[7],
+                .x3 = resultX2[6],
+                .x4 = resultX2[7],
+                .y = resultY[6],
+                .z = resultZ[6]
+            };
         }
     }
+    fwrite(filteredData, 3 * (width), (height), fOutput);
     free(filteredData);
-
-    fwrite(sampledData, 3 * (width/2), (height/2), fOutput);
-    free(sampledData);
+    // fwrite(compressedData, 6 * (width/2), (height/2), fOutput);
+    free(compressedData);
     
     fclose(fOutput);
 
