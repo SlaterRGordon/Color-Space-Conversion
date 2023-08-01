@@ -34,8 +34,8 @@ int main(int argc, char* argv[]) {
     int width = fh->infoHeader.width;
     int height = fh->infoHeader.height;
 
-    // fh->infoHeader.width /= 2;
-    // fh->infoHeader.height /= 2;
+    fh->infoHeader.width /= 2;
+    fh->infoHeader.height /= 2;
 
     writeFileHeader(fOutput, fh);
     fseek(fInput, fh->header.dataOffset, SEEK_SET);
@@ -48,9 +48,9 @@ int main(int argc, char* argv[]) {
     }
     fclose(fInput);
 
-    pixel *filteredData = (pixel *)malloc(width * height * sizeof(pixel));
-    gaussianFilter(data, filteredData, width, height);
-    free(data);
+    // pixel *filteredData = (pixel *)malloc(width * height * sizeof(pixel));
+    // gaussianFilter(data, filteredData, width, height);
+    // free(data);
 
     compressedPixel *compressedData = (compressedPixel *)malloc((width/2) * (height/2) * sizeof(compressedPixel));
     uint16x8_t leftShiftVal = vdupq_n_u16(128);
@@ -61,10 +61,10 @@ int main(int argc, char* argv[]) {
             int sampleIndex = (i/2) * width/2 + (j/2);
             int index1 = i * width + j;
 
-            uint8x8x3_t dataVecR1_8x3 = vld3_u8(&filteredData[index1].x);
-            uint8x8x3_t dataVecR1I1_8x3 = vld3_u8(&filteredData[index1 + 1].x);
-            uint8x8x3_t dataVecR2_8x3 = vld3_u8(&filteredData[index1 + width].x);
-            uint8x8x3_t dataVecR2I1_8x3 = vld3_u8(&filteredData[index1 + width + 1].x);
+            uint8x8x3_t dataVecR1_8x3 = vld3_u8(&data[index1].x);
+            uint8x8x3_t dataVecR1I1_8x3 = vld3_u8(&data[index1 + 1].x);
+            uint8x8x3_t dataVecR2_8x3 = vld3_u8(&data[index1 + width].x);
+            uint8x8x3_t dataVecR2I1_8x3 = vld3_u8(&data[index1 + width + 1].x);
             
             uint8x8_t resultX1 = vshrn_n_u16(
                 vaddq_u16(
@@ -226,9 +226,8 @@ int main(int argc, char* argv[]) {
             };
         }
     }
-    fwrite(filteredData, 3 * (width), (height), fOutput);
-    free(filteredData);
-    // fwrite(compressedData, 6 * (width/2), (height/2), fOutput);
+    free(data);
+    fwrite(compressedData, 6 * (width/2), (height/2), fOutput);
     free(compressedData);
     
     fclose(fOutput);
