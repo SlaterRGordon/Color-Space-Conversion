@@ -49,13 +49,13 @@ int main(int argc, char* argv[]) {
 
     printf("width: %d, height: %d\n", width, height);
 
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
+    for (int i = 0; i < width; i++) {
+        for (int j = 0; j < height; j++) {
             pixel *inputPixel;
-            inputPixel = &data[i * width + j];
+            inputPixel = &data[j * width + i];
             pixel *convertedPixel = rgbToYcc(inputPixel);
 
-            data[i * width + j] = convertedPixel[0];
+            data[j * width + i] = convertedPixel[0];
         }
     }
 
